@@ -11,6 +11,7 @@
 namespace PHP_CodeSniffer\Reports;
 
 use PHP_CodeSniffer\Files\File;
+use PHP_CodeSniffer\Util;
 
 class Json implements Report
 {
@@ -32,6 +33,7 @@ class Json implements Report
      */
     public function generateFileReport($report, File $phpcsFile, $showSources=false, $width=80)
     {
+        $tokens = $phpcsFile->getTokens();
         $filename = str_replace('\\', '\\\\', $report['filename']);
         $filename = str_replace('"', '\"', $filename);
         $filename = str_replace('/', '\/', $filename);
@@ -55,6 +57,23 @@ class Json implements Report
                     $messagesObject->line    = $line;
                     $messagesObject->column  = $column;
                     $messagesObject->fixable = $fixable;
+
+                    if ($line > 0 && $error['source'] == "Generic.Metrics.CyclomaticComplexity.TooHigh") {
+						$snippet = '';
+						foreach ($tokens as $stackPtr => $token) {
+							if ($token['line'] == $line) {
+								if (isset($token['orig_content']) === true) {
+									$tokenContent = $token['orig_content'];
+								} else {
+									$tokenContent = $token['content'];
+								}
+								$tokenContent = Util\Common::prepareForOutput($tokenContent, ["\r", "\n", "\t"]);
+								$tokenContent = str_replace("\000", ' ', $tokenContent);
+								$snippet .= $tokenContent;
+							}
+						}
+						$messagesObject->code    = $snippet;
+					}
 
                     $messages .= json_encode($messagesObject).",";
                 }
