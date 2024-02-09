@@ -177,7 +177,7 @@ class Ruleset
                     $namespace = basename(dirname($standard));
                 }
 
-                Autoload::addSearchPath(dirname($standard), $namespace);
+                //Autoload::addSearchPath(dirname($standard), $namespace);
             }
 
             if (defined('PHP_CODESNIFFER_IN_TESTS') === true && empty($restrictions) === false) {
@@ -508,7 +508,7 @@ class Ruleset
                 echo "\tAdding sniff files from ".Util\Common::stripBasepath($sniffDir, $this->config->basepath).' directory'.PHP_EOL;
             }
 
-            $ownSniffs = $this->expandSniffDirectory($sniffDir, $depth);
+            //$ownSniffs = $this->expandSniffDirectory($sniffDir, $depth);
         }
 
         // Include custom autoloaders.
