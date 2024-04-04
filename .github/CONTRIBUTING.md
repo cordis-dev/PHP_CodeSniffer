@@ -4,6 +4,25 @@ Contributing
 Thank you for your interest in contributing to PHP_CodeSniffer!
 
 
+## Table of Contents
+
+* [Reporting Bugs](#reporting-bugs)
+   - [Reporting Security Issues](#reporting-security-issues)
+   - [Support/Questions About Using PHP_CodeSniffer](#supportquestions-about-using-php_codesniffer)
+* [Contributing Without Writing Code](#contributing-without-writing-code)
+   - [Bug Triage](#bug-triage)
+   - [Testing Open Pull Requests](#testing-open-pull-requests)
+   - [Writing sniff documentation](#writing-sniff-documentation)
+   - [Other tasks](#other-tasks)
+* [Contributing With Code](#contributing-with-code)
+   - [Requesting/Submitting New Features](#requestingsubmitting-new-features)
+   - [Getting started](#getting-started)
+   - [While working on a patch](#while-working-on-a-patch)
+   - [Writing tests](#writing-tests)
+   - [Submitting your pull request](#submitting-your-pull-request)
+* [Licensing](#licensing)
+
+
 ## Reporting Bugs
 
 Please search the [open issues](https://github.com/PHPCSStandards/PHP_CodeSniffer/issues) to see if your issue has been reported
@@ -148,6 +167,17 @@ This is an open invitation for interested parties to gather their thoughts about
 
 > Kind request: If you don't have something to add to the discussion, but do want to indicate a positive or negative opinion
 > on a topic, please add an emoji on the original post instead of leaving a comment.
+
+> :bulb: On a subset of these issues - the ones which impact maintainers or integrators -, a list of known interested parties
+> will be pinged (cc-ed) to gather their thoughts on the topic.
+>
+> This list is public and
+> [maintained in a markdown file](https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/.github/community-cc-list.md).
+>
+> To add or remove yourself to/from this list, submit a PR to the repo updating the `community-cc-list.md` file.
+> PRs adding/removing _other people_ to/from the list will only be merged if the people being added/removed leave a comment
+> on the PR consenting to it.
+
 
 #### Issues marked with "Status: needs investigation"
 
@@ -318,7 +348,7 @@ While not strictly required, it is greatly appreciated if you comply with the fo
 * Being wordy in the commit message is not a bad thing.
     It is greatly preferable to have the details about a fix in the commit message over just having those details
     in the PR description.
-    Code hosting platforms comes and go (think: SourceForge, PEAR), commit messages are here to stay, even if the code base
+    Code hosting platforms come and go (think: SourceForge, PEAR), commit messages are here to stay, even if the code base
     would move to another platform at some point in the future.
 * Ensure that the tests (and docs) related to a particular fix are in the same commit.
     It is much harder to track down what a particular code snippet in a test case file was supposed to be testing if the fix
