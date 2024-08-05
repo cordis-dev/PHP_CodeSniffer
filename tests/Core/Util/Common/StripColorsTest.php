@@ -1,19 +1,19 @@
 <?php
 /**
- * Tests for the \PHP_CodeSniffer\Util\Sniffs\Common::stripColors() method.
+ * Tests for the \PHP_CodeSniffer\Util\Common::stripColors() method.
  *
  * @author    Juliette Reinders Folmer <phpcs_nospam@adviesenzo.nl>
  * @copyright 2024 Juliette Reinders Folmer. All rights reserved.
  * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
-namespace PHP_CodeSniffer\Tests\Core\Util;
+namespace PHP_CodeSniffer\Tests\Core\Util\Common;
 
 use PHP_CodeSniffer\Util\Common;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the \PHP_CodeSniffer\Util\Sniffs\Common::stripColors() method.
+ * Tests for the \PHP_CodeSniffer\Util\Common::stripColors() method.
  *
  * @covers \PHP_CodeSniffer\Util\Common::stripColors
  */

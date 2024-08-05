@@ -1,19 +1,19 @@
 <?php
 /**
- * Tests for the \PHP_CodeSniffer\Util\Sniffs\Common::suggestType() method.
+ * Tests for the \PHP_CodeSniffer\Util\Common::suggestType() method.
  *
  * @author    Juliette Reinders Folmer <phpcs_nospam@adviesenzo.nl>
  * @copyright 2019 Juliette Reinders Folmer. All rights reserved.
  * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
-namespace PHP_CodeSniffer\Tests\Core\Util;
+namespace PHP_CodeSniffer\Tests\Core\Util\Common;
 
 use PHP_CodeSniffer\Util\Common;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the \PHP_CodeSniffer\Util\Sniffs\Common::suggestType() method.
+ * Tests for the \PHP_CodeSniffer\Util\Common::suggestType() method.
  *
  * @covers \PHP_CodeSniffer\Util\Common::suggestType
  */
