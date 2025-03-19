@@ -16,6 +16,7 @@
 namespace PHP_CodeSniffer\Generators;
 
 use DOMDocument;
+use DOMElement;
 use DOMNode;
 use PHP_CodeSniffer\Config;
 
@@ -52,6 +53,19 @@ class HTML extends Generator
             margin-top: 50px;
         }
 
+        h2 a.sniffanchor,
+        h2 a.sniffanchor {
+            color: #006C95;
+            opacity: 0;
+            padding: 0 3px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        h2:hover a.sniffanchor,
+        h2:focus a.sniffanchor {
+            opacity: 1;
+        }
+
         .code-comparison {
             width: 100%;
         }
@@ -69,6 +83,11 @@ class HTML extends Generator
             width: 50%;
             background-color: #F1F1F1;
             line-height: 15px;
+        }
+
+        .code-comparison-title {
+            text-align: left;
+            font-weight: 600;
         }
 
         .code-comparison-code {
@@ -94,6 +113,13 @@ class HTML extends Generator
         }
     </style>';
 
+    /**
+     * List of seen slugified anchors to ensure uniqueness.
+     *
+     * @var array<string, true>
+     */
+    private $seenAnchors = [];
+
 
     /**
      * Generates the documentation for a standard.
@@ -108,15 +134,14 @@ class HTML extends Generator
         }
 
         ob_start();
-        foreach ($this->docFiles as $file) {
-            $doc = new DOMDocument();
-            $doc->load($file);
-            $documentation = $doc->getElementsByTagName('documentation')->item(0);
-            $this->processSniff($documentation);
-        }
+        parent::generate();
 
         $content = ob_get_contents();
         ob_end_clean();
+
+        // Clear anchor cache after Documentation generation.
+        // The anchor generation for the TOC anchor links will use the same logic, so should end up with the same unique slugs.
+        $this->seenAnchors = [];
 
         if (trim($content) !== '') {
             echo $this->getFormattedHeader();
@@ -154,15 +179,20 @@ class HTML extends Generator
     protected function getFormattedHeader()
     {
         $standard = $this->ruleset->name;
-        $output   = '<html>'.PHP_EOL;
-        $output  .= ' <head>'.PHP_EOL;
-        $output  .= "  <title>$standard Coding Standards</title>".PHP_EOL;
-        $output  .= '  '.str_replace("\n", PHP_EOL, self::STYLESHEET).PHP_EOL;
-        $output  .= ' </head>'.PHP_EOL;
-        $output  .= ' <body>'.PHP_EOL;
-        $output  .= "  <h1>$standard Coding Standards</h1>".PHP_EOL;
+        $output   = sprintf(
+            '<html>
+ <head>
+  <title>%1$s Coding Standards</title>
+  %2$s
+ </head>
+ <body>
+  <h1>%1$s Coding Standards</h1>',
+            $standard,
+            self::STYLESHEET
+        );
 
-        return $output;
+        // Use the correct line endings based on the OS.
+        return str_replace("\n", PHP_EOL, $output).PHP_EOL;
 
     }//end getFormattedHeader()
 
@@ -202,12 +232,14 @@ class HTML extends Generator
         $output  = '  <h2>Table of Contents</h2>'.PHP_EOL;
         $output .= '  <ul class="toc">'.PHP_EOL;
 
+        $listItemTemplate = '   <li><a href="#%s">%s</a></li>'.PHP_EOL;
+
         foreach ($this->docFiles as $file) {
             $doc = new DOMDocument();
             $doc->load($file);
             $documentation = $doc->getElementsByTagName('documentation')->item(0);
             $title         = $this->getTitle($documentation);
-            $output       .= '   <li><a href="#'.str_replace(' ', '-', $title).'">'.$title.'</a></li>'.PHP_EOL;
+            $output       .= sprintf($listItemTemplate, $this->titleToAnchor($title), $title);
         }
 
         $output .= '  </ul>'.PHP_EOL;
@@ -245,16 +277,17 @@ class HTML extends Generator
         // Turn off errors so we don't get timezone warnings if people
         // don't have their timezone set.
         $errorLevel = error_reporting(0);
-        $output     = '  <div class="tag-line">';
-        $output    .= 'Documentation generated on '.date('r');
-        $output    .= ' by <a href="https://github.com/PHPCSStandards/PHP_CodeSniffer">PHP_CodeSniffer '.Config::VERSION.'</a>';
-        $output    .= '</div>'.PHP_EOL;
+        $output     = sprintf(
+            '  <div class="tag-line">Documentation generated on %s by <a href="https://github.com/PHPCSStandards/PHP_CodeSniffer">PHP_CodeSniffer %s</a></div>
+ </body>
+</html>',
+            date('r'),
+            Config::VERSION
+        );
         error_reporting($errorLevel);
 
-        $output .= ' </body>'.PHP_EOL;
-        $output .= '</html>'.PHP_EOL;
-
-        return $output;
+        // Use the correct line endings based on the OS.
+        return str_replace("\n", PHP_EOL, $output).PHP_EOL;
 
     }//end getFormattedFooter()
 
@@ -281,12 +314,44 @@ class HTML extends Generator
 
         if (trim($content) !== '') {
             $title = $this->getTitle($doc);
-            echo '  <a name="'.str_replace(' ', '-', $title).'" />'.PHP_EOL;
-            echo '  <h2>'.$title.'</h2>'.PHP_EOL;
+            printf(
+                '  <h2 id="%1$s">%2$s<a class="sniffanchor" href="#%1$s"> &sect; </a></h2>'.PHP_EOL,
+                $this->titleToAnchor($title),
+                $title
+            );
             echo $content;
         }
 
     }//end processSniff()
+
+
+    /**
+     * Transform a title to a string which can be used as an HTML anchor.
+     *
+     * @param string $title The title.
+     *
+     * @since 3.12.0
+     *
+     * @return string
+     */
+    private function titleToAnchor($title)
+    {
+        // Slugify the text.
+        $title = strtolower($title);
+        $title = preg_replace('`[^a-z0-9\._-]`', '-', $title);
+
+        if (isset($this->seenAnchors[$title]) === true) {
+            // Try to find a unique anchor for this title.
+            for ($i = 2; (isset($this->seenAnchors[$title.'-'.$i]) === true); $i++);
+            $title .= '-'.$i;
+        }
+
+        // Add to "seen" list.
+        $this->seenAnchors[$title] = true;
+
+        return $title;
+
+    }//end titleToAnchor()
 
 
     /**
@@ -318,7 +383,12 @@ class HTML extends Generator
      */
     protected function getFormattedTextBlock(DOMNode $node)
     {
-        $content = trim($node->nodeValue);
+        $content = $node->nodeValue;
+        if (empty($content) === true) {
+            return '';
+        }
+
+        $content = trim($content);
         $content = htmlspecialchars($content, (ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML401));
 
         // Allow only em tags.
@@ -383,40 +453,87 @@ class HTML extends Generator
      */
     protected function getFormattedCodeComparisonBlock(DOMNode $node)
     {
-        $codeBlocks = $node->getElementsByTagName('code');
+        $codeBlocks    = $node->getElementsByTagName('code');
+        $firstCodeElm  = $codeBlocks->item(0);
+        $secondCodeElm = $codeBlocks->item(1);
 
-        $firstTitle = trim($codeBlocks->item(0)->getAttribute('title'));
-        $firstTitle = str_replace('  ', '&nbsp;&nbsp;', $firstTitle);
-        $first      = trim($codeBlocks->item(0)->nodeValue);
-        $first      = str_replace('<?php', '&lt;?php', $first);
-        $first      = str_replace("\n", '</br>', $first);
-        $first      = str_replace(' ', '&nbsp;', $first);
-        $first      = str_replace('<em>', '<span class="code-comparison-highlight">', $first);
-        $first      = str_replace('</em>', '</span>', $first);
+        if (isset($firstCodeElm, $secondCodeElm) === false) {
+            // Missing at least one code block.
+            return '';
+        }
 
-        $secondTitle = trim($codeBlocks->item(1)->getAttribute('title'));
-        $secondTitle = str_replace('  ', '&nbsp;&nbsp;', $secondTitle);
-        $second      = trim($codeBlocks->item(1)->nodeValue);
-        $second      = str_replace('<?php', '&lt;?php', $second);
-        $second      = str_replace("\n", '</br>', $second);
-        $second      = str_replace(' ', '&nbsp;', $second);
-        $second      = str_replace('<em>', '<span class="code-comparison-highlight">', $second);
-        $second      = str_replace('</em>', '</span>', $second);
+        $firstTitle = $this->formatCodeTitle($firstCodeElm);
+        $first      = $this->formatCodeSample($firstCodeElm);
 
-        $output  = '  <table class="code-comparison">'.PHP_EOL;
-        $output .= '   <tr>'.PHP_EOL;
-        $output .= "    <td class=\"code-comparison-title\">$firstTitle</td>".PHP_EOL;
-        $output .= "    <td class=\"code-comparison-title\">$secondTitle</td>".PHP_EOL;
-        $output .= '   </tr>'.PHP_EOL;
-        $output .= '   <tr>'.PHP_EOL;
-        $output .= "    <td class=\"code-comparison-code\">$first</td>".PHP_EOL;
-        $output .= "    <td class=\"code-comparison-code\">$second</td>".PHP_EOL;
-        $output .= '   </tr>'.PHP_EOL;
-        $output .= '  </table>'.PHP_EOL;
+        $secondTitle = $this->formatCodeTitle($secondCodeElm);
+        $second      = $this->formatCodeSample($secondCodeElm);
+
+        $titleRow = '';
+        if ($firstTitle !== '' || $secondTitle !== '') {
+            $titleRow .= '   <tr>'.PHP_EOL;
+            $titleRow .= "    <th class=\"code-comparison-title\">$firstTitle</th>".PHP_EOL;
+            $titleRow .= "    <th class=\"code-comparison-title\">$secondTitle</th>".PHP_EOL;
+            $titleRow .= '   </tr>'.PHP_EOL;
+        }
+
+        $codeRow = '';
+        if ($first !== '' || $second !== '') {
+            $codeRow .= '   <tr>'.PHP_EOL;
+            $codeRow .= "    <td class=\"code-comparison-code\">$first</td>".PHP_EOL;
+            $codeRow .= "    <td class=\"code-comparison-code\">$second</td>".PHP_EOL;
+            $codeRow .= '   </tr>'.PHP_EOL;
+        }
+
+        $output = '';
+        if ($titleRow !== '' || $codeRow !== '') {
+            $output  = '  <table class="code-comparison">'.PHP_EOL;
+            $output .= $titleRow;
+            $output .= $codeRow;
+            $output .= '  </table>'.PHP_EOL;
+        }
 
         return $output;
 
     }//end getFormattedCodeComparisonBlock()
+
+
+    /**
+     * Retrieve a code block title and prepare it for output as HTML.
+     *
+     * @param \DOMElement $codeElm The DOMElement object for a code block.
+     *
+     * @since 3.12.0
+     *
+     * @return string
+     */
+    private function formatCodeTitle(DOMElement $codeElm)
+    {
+        $title = trim($codeElm->getAttribute('title'));
+        return str_replace('  ', '&nbsp;&nbsp;', $title);
+
+    }//end formatCodeTitle()
+
+
+    /**
+     * Retrieve a code block contents and prepare it for output as HTML.
+     *
+     * @param \DOMElement $codeElm The DOMElement object for a code block.
+     *
+     * @since 3.12.0
+     *
+     * @return string
+     */
+    private function formatCodeSample(DOMElement $codeElm)
+    {
+        $code = (string) $codeElm->nodeValue;
+        $code = trim($code);
+        $code = str_replace('<?php', '&lt;?php', $code);
+        $code = str_replace(["\n", ' '], ['</br>', '&nbsp;'], $code);
+        $code = str_replace(['<em>', '</em>'], ['<span class="code-comparison-highlight">', '</span>'], $code);
+
+        return $code;
+
+    }//end formatCodeSample()
 
 
 }//end class

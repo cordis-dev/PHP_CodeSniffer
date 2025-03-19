@@ -372,3 +372,46 @@ enum SomeEnum
 
     case ONE = 'one';
 }
+
+class SupportReadonlyProperties {
+    readonly int $readonlyA;
+    public readonly string $publicReadonly;
+    readonly bool $readonlyB;
+    readonly private bool $readonlyPrivate;
+}
+
+class NoPreambleMultilineDeclaration {
+    public
+    static
+    int $prop = 1;
+}
+
+class MultipleBlankLinesInPreAmble {
+
+    /**
+     * Docblock.
+     */
+
+    #[MyAttribute]
+
+
+    #[
+
+        BlankLinesWithinAnAttributeShouldBeLeftAlone
+
+    ]
+
+    public $prop;
+}
+
+final class BlankLinesBetweenVsAttributesWithoutCommentIssueSquiz3594
+{
+
+    // PHPCS can fix blank lines for the first property, but not for the second. (fixed now)
+    #[SingleAttribute]
+
+    public $property1;
+    #[SingleAttribute]
+
+    public $property2;
+}

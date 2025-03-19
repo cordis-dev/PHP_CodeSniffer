@@ -1,10 +1,11 @@
 name: Quicktest
 
 on:
-  # Run on pushes to all branches except for `master`.
+  # Run on pushes to all branches except for `master`/`4.0`.
   push:
     branches-ignore:
       - master
+      - 4.0
     paths-ignore:
       - '**.md'
   # Allow manually triggering the workflow.
@@ -27,12 +28,12 @@ jobs:
 
     strategy:
       matrix:
-        os: ['ubuntu-latest', 'windows-latest']
+        os: ['ubuntu-24.04-arm', 'windows-latest']
         php: ['7.2', 'latest']
 
         include:
           - php: '5.4'
-            os: 'ubuntu-latest'
+            os: 'ubuntu-24.04-arm'
             custom_ini: false
           # Installing on Windows with PHP 5.4 runs into all sorts of problems with Composer.
           # See this issue for more context (yes, I've seen this problem before):
@@ -41,7 +42,7 @@ jobs:
             os: 'windows-latest'
             custom_ini: false
 
-    name: "QuickTest: PHP ${{ matrix.php }} (${{ matrix.os == 'ubuntu-latest' && 'Linux' || 'Win'  }})"
+    name: "QuickTest: PHP ${{ matrix.php }} (${{ matrix.os == 'windows-latest' && 'Win' || 'Linux ARM' }})"
 
     steps:
       - name: Prepare git to leave line endings alone

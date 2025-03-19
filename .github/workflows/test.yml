@@ -1,11 +1,12 @@
 name: Test
 
 on:
-  # Run on pushes to `master` and on all pull requests.
+  # Run on pushes to `master`/`4.0` and on all pull requests.
   # Prevent the build from running when there are only irrelevant changes.
   push:
     branches:
       - master
+      - 4.0
     tags:
       - '**'
     paths-ignore:
@@ -73,6 +74,17 @@ jobs:
           - php: '8.4'
             skip_tests: true
 
+          # The default libxml library on Ubuntu images is a little out of date.
+          # To safeguard support for the latest libxml we need to update the library on the fly.
+          # This only needs to be tested with one PHP version for each libxml minor to verify support.
+          # Testing against multiple PHP versions would not yield a difference in results.
+          - php: '8.0'
+            os: 'ubuntu-latest'
+            libxml_minor: '2.11'
+          - php: '8.3'
+            os: 'ubuntu-latest'
+            libxml_minor: '2.13'
+
           # Extra builds running only the unit tests with different PHP ini settings.
           - php: '5.5'
             os: 'ubuntu-latest'
@@ -82,7 +94,7 @@ jobs:
             custom_ini: true
 
     # yamllint disable-line rule:line-length
-    name: "PHP: ${{ matrix.php }} ${{ matrix.custom_ini && ' with custom ini settings' || '' }} (${{ matrix.os == 'ubuntu-latest' && 'Linux' || 'Win'  }})"
+    name: "PHP: ${{ matrix.php }} ${{ matrix.custom_ini && ' with custom ini settings' || '' }}${{ matrix.libxml_minor && format( ' with libxml {0}', matrix.libxml_minor ) || '' }} (${{ matrix.os == 'ubuntu-latest' && 'Linux' || 'Win'  }})"
 
     continue-on-error: ${{ matrix.php == '8.5' }}
 
@@ -92,6 +104,70 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: "libxml2: find the latest relevant tag"
+        if: ${{ matrix.libxml_minor }}
+        id: libxml_version
+        uses: oprypin/find-latest-tag@v1
+        with:
+          repository: GNOME/libxml2
+          releases-only: false  # The libxml2 repository doesn't use GitHub's "release" feature.
+          prefix: 'v${{ matrix.libxml_minor }}.' # Limit the result to the minor we're interested in.
+          sort-tags: true # Find the "greatest" version for that minor based on semver.
+
+      # To put it simply: we need to remove the 'v' prefix from the version number.
+      - name: "libxml2: parse the version to a patch version"
+        if: ${{ matrix.libxml_minor }}
+        id: libxml_patch_version
+        shell: bash
+        env:
+          TAG: ${{ steps.libxml_version.outputs.tag }}
+        run: echo "PATCH=$( echo "$TAG" | cut -b 2- )" >> "$GITHUB_OUTPUT"
+
+      - name: "libxml2: restore cache"
+        if: ${{ matrix.libxml_minor }}
+        id: libxml_cache_restore
+        uses: actions/cache/restore@v4
+        with:
+          path: "libxml2-${{ steps.libxml_patch_version.outputs.PATCH }}"
+          key: "${{ matrix.os }}-libxml-${{ matrix.libxml_minor }}-${{ steps.libxml_patch_version.outputs.PATCH }}"
+
+      # Updating the lists can fail intermittently, typically after Microsoft has released a new package.
+      # This should not be blocking for this job, so ignore any errors from this step.
+      # Ref: https://github.com/dotnet/core/issues/4167
+      - name: "libxml2: Update the available packages list"
+        if: ${{ matrix.libxml_minor && steps.libxml_cache_restore.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        run: sudo apt-get update
+
+      - name: "libxml2: Download and build package (linux only)"
+        if: ${{ matrix.libxml_minor && steps.libxml_cache_restore.outputs.cache-hit != 'true' }}
+        env:
+          PATCH: ${{ steps.libxml_patch_version.outputs.PATCH }}
+        run: |
+          sudo apt-get install -y wget build-essential
+          wget "https://download.gnome.org/sources/libxml2/${{ matrix.libxml_minor }}/libxml2-$PATCH.tar.xz"
+          tar -xf "libxml2-$PATCH.tar.xz"
+          cd "libxml2-$PATCH"
+          ./configure --prefix=/usr/local
+          make
+
+      - name: "libxml2: save cache"
+        if: ${{ matrix.libxml_minor && steps.libxml_cache_restore.outputs.cache-hit != 'true' }}
+        id: libxml_cache_save
+        uses: actions/cache/save@v4
+        with:
+          path: "libxml2-${{ steps.libxml_patch_version.outputs.PATCH }}"
+          key: ${{ steps.libxml_cache_restore.outputs.cache-primary-key }}
+
+      - name: "libxml2: Install package (linux only)"
+        if: ${{ matrix.libxml_minor }}
+        env:
+          PATCH: ${{ steps.libxml_patch_version.outputs.PATCH }}
+        run: |
+          cd "libxml2-$PATCH"
+          sudo make install
+          sudo ldconfig
 
       - name: Setup ini config
         id: set_ini
@@ -114,6 +190,9 @@ jobs:
           ini-values: ${{ steps.set_ini.outputs.PHP_INI }}
           coverage: none
           tools: cs2pr
+
+      - name: "DEBUG: show libxml loaded version (php)"
+        run: php -r 'echo "libxml loaded version = ", LIBXML_LOADED_VERSION, PHP_EOL;'
 
       # This action also handles the caching of the dependencies.
       - name: Set up node
@@ -148,21 +227,19 @@ jobs:
         run: php "vendor/bin/phpunit" tests/AllTests.php --no-coverage
 
       - name: 'PHPUnit: run select tests in CBF mode'
+        if: ${{ matrix.skip_tests != true }}
         run: php "vendor/bin/phpunit" tests/AllTests.php --group CBF --exclude-group nothing --no-coverage
         env:
           PHP_CODESNIFFER_CBF: '1'
 
       - name: 'PHPCS: check code style without cache, no parallel'
-        if: ${{ matrix.custom_ini == false && matrix.php != '7.4' }}
-        run: php "bin/phpcs" --no-cache --parallel=1
-
-      - name: 'PHPCS: check code style to show results in PR'
-        if: ${{ matrix.custom_ini == false && matrix.php == '7.4' }}
         id: phpcs
-        run: php "bin/phpcs" --no-cache --parallel=1 --report-full --report-checkstyle=./phpcs-report.xml
+        run: >
+          php "bin/phpcs" --no-cache --parallel=1
+          ${{ matrix.os == 'ubuntu-latest' && matrix.php == '8.4' && '--report-full --report-checkstyle=./phpcs-report.xml' || '' }}
 
       - name: Show PHPCS results in PR
-        if: ${{ always() && steps.phpcs.outcome == 'failure' && matrix.php == '7.4' }}
+        if: ${{ always() && steps.phpcs.outcome == 'failure' && matrix.os == 'ubuntu-latest' && matrix.php == '8.4' }}
         run: cs2pr ./phpcs-report.xml
 
       - name: Download the PHPCS phar
@@ -215,14 +292,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup ini config
-        if: ${{ matrix.os != 'windows-latest' }}
+        if: ${{ matrix.custom_ini == true && matrix.os != 'windows-latest' }}
         id: set_ini
         shell: bash
         run: |
           # Set the "short_open_tag" ini to make sure specific conditions are tested.
-          if [[ ${{ matrix.custom_ini }} == true && "${{ matrix.php }}" == '7.2' ]]; then
-            echo 'PHP_INI=, date.timezone=Australia/Sydney, short_open_tag=On' >> "$GITHUB_OUTPUT"
-          fi
+          echo 'PHP_INI=, date.timezone=Australia/Sydney, short_open_tag=On' >> "$GITHUB_OUTPUT"
 
       - name: Install PHP
         uses: shivammathur/setup-php@v2
@@ -274,37 +349,26 @@ jobs:
         if: ${{ steps.phpunit_version.outputs.VERSION >= '9.3' }}
         run: php "vendor/bin/phpunit" --coverage-cache ./build/phpunit-cache --warm-coverage-cache
 
-      - name: "Run the unit tests with code coverage (PHPUnit < 9.3)"
-        if: ${{ matrix.os != 'windows-latest' && steps.phpunit_version.outputs.VERSION < '9.3' }}
-        run: php "vendor/bin/phpunit" tests/AllTests.php
-
-      - name: "Run the unit tests with code coverage (PHPUnit 9.3+)"
-        if: ${{ matrix.os != 'windows-latest' && steps.phpunit_version.outputs.VERSION >= '9.3' }}
-        run: php "vendor/bin/phpunit" tests/AllTests.php --coverage-cache ./build/phpunit-cache
-
-      - name: "Run select tests in CBF mode with code coverage (PHPUnit < 9.3)"
-        if: ${{ matrix.os != 'windows-latest' && steps.phpunit_version.outputs.VERSION < '9.3' }}
+      - name: "Run the unit tests with code coverage"
+        if: ${{ matrix.os != 'windows-latest' }}
         run: >
           php "vendor/bin/phpunit" tests/AllTests.php
-          --group CBF --exclude-group nothing --coverage-clover build/logs/clover-cbf.xml
-        env:
-          PHP_CODESNIFFER_CBF: '1'
+          ${{ steps.phpunit_version.outputs.VERSION >= '9.3' && '--coverage-cache ./build/phpunit-cache' || '' }}
 
-      - name: "Run select tests in CBF mode with code coverage (PHPUnit 9.3+)"
-        if: ${{ matrix.os != 'windows-latest' && steps.phpunit_version.outputs.VERSION >= '9.3' }}
+      - name: "Run select tests in CBF mode with code coverage"
+        if: ${{ matrix.os != 'windows-latest' }}
         run: >
-          php "vendor/bin/phpunit" tests/AllTests.php --coverage-cache ./build/phpunit-cache
+          php "vendor/bin/phpunit" tests/AllTests.php
+          ${{ steps.phpunit_version.outputs.VERSION >= '9.3' && '--coverage-cache ./build/phpunit-cache' || '' }}
           --group CBF --exclude-group nothing --coverage-clover build/logs/clover-cbf.xml
         env:
           PHP_CODESNIFFER_CBF: '1'
 
-      - name: "Run the unit tests which may have different outcomes on Windows with code coverage (PHPUnit < 9.3)"
-        if: ${{ matrix.os == 'windows-latest' && steps.phpunit_version.outputs.VERSION < '9.3' }}
-        run: php "vendor/bin/phpunit" tests/AllTests.php --group Windows
-
-      - name: "Run the unit tests which may have different outcomes on Windows with code coverage (PHPUnit 9.3+)"
-        if: ${{ matrix.os == 'windows-latest' && steps.phpunit_version.outputs.VERSION >= '9.3' }}
-        run: php "vendor/bin/phpunit" tests/AllTests.php --group Windows --coverage-cache ./build/phpunit-cache
+      - name: "Run the unit tests which may have different outcomes on Windows with code coverage"
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: >
+          php "vendor/bin/phpunit" tests/AllTests.php --group Windows
+          ${{ steps.phpunit_version.outputs.VERSION >= '9.3' && '--coverage-cache ./build/phpunit-cache' || '' }}
 
       - name: "Upload coverage results to Coveralls (normal run)"
         if: ${{ success() }}
