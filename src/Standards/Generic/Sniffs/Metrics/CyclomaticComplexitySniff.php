@@ -71,7 +71,7 @@ class CyclomaticComplexitySniff implements Sniff
 
         // Predicate nodes for PHP.
         $find = [
-            T_CASE                     => true,
+            T_SWITCH                   => true,
             T_DEFAULT                  => true,
             T_CATCH                    => true,
             T_IF                       => true,
