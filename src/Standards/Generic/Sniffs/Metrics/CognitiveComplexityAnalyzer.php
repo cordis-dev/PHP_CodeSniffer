@@ -116,14 +116,6 @@ final class CognitiveComplexityAnalyzer
             if (isset(self::breakingTokens[$currentToken['code']])) {
                 continue;
             }
-
-            $isNestingIncrement   = isset(self::nestingIncrements[$currentToken['code']]);
-            $measuredNestingLevel = $this->getMeasuredNestingLevel($currentToken, $tokens, $position);
-
-            // B3. Nesting increment
-            if ($isNestingIncrement && $measuredNestingLevel > 1) {
-                $this->cognitiveComplexity += $measuredNestingLevel - 1;
-            }
         }
 
         return $this->cognitiveComplexity;
