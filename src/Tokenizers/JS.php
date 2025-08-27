@@ -468,9 +468,9 @@ class JS extends Tokenizer
             // Check for known tokens, but ignore tokens found that are not at
             // the end of a string, like FOR and this.FORmat.
             if (isset($this->tokenValues[strtolower($buffer)]) === true
-                && (preg_match('|[a-zA-z0-9_]|', $char) === 0
+                && (preg_match('|[A-Za-z0-9_]|', $char) === 0
                 || isset($chars[($i + 1)]) === false
-                || preg_match('|[a-zA-z0-9_]|', $chars[($i + 1)]) === 0)
+                || preg_match('|[A-Za-z0-9_]|', $chars[($i + 1)]) === 0)
             ) {
                 $matchedToken    = false;
                 $lookAheadLength = ($maxTokenLength - strlen($buffer));
