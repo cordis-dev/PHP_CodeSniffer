@@ -28,7 +28,7 @@ jobs:
   update-year-in-test:
     runs-on: ubuntu-latest
     # Don't run the cron job on forks.
-    if: ${{ github.event_name != 'schedule' || github.repository == 'PHPCSStandards/PHP_CodeSniffer' }}
+    if: ${{ github.event_name != 'schedule' || github.event.repository.fork == false }}
 
     name: "Happy New Year"
     steps:
@@ -49,7 +49,7 @@ jobs:
         run: "echo current year: ${{ steps.year.outputs.NEW_YEAR }} - previous year: ${{ steps.year.outputs.PREVIOUS_YEAR }}"
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ steps.branches.outputs.BASE }}
 

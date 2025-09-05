@@ -114,7 +114,7 @@ jobs:
         run: git config --global core.autocrlf input
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: "libxml2: find the latest relevant tag"
         if: ${{ matrix.libxml_minor }}
@@ -183,16 +183,18 @@ jobs:
       - name: Setup ini config
         id: set_ini
         shell: bash
+        # yamllint disable rule:line-length
         run: |
           # Set the "short_open_tag" ini to make sure specific conditions are tested.
           # Also turn on error_reporting to ensure all notices are shown.
           if [[ ${{ matrix.custom_ini }} == true && "${{ matrix.php }}" == '5.5' ]]; then
-            echo 'PHP_INI=error_reporting=-1, display_errors=On, date.timezone=Australia/Sydney, short_open_tag=On, asp_tags=On' >> "$GITHUB_OUTPUT"
+            echo 'PHP_INI=error_reporting=-1, display_errors=On, display_startup_errors=On, date.timezone=Australia/Sydney, short_open_tag=On, asp_tags=On' >> "$GITHUB_OUTPUT"
           elif [[ ${{ matrix.custom_ini }} == true && "${{ matrix.php }}" != '5.5' ]]; then
-            echo 'PHP_INI=error_reporting=-1, display_errors=On, date.timezone=Australia/Sydney, short_open_tag=On' >> "$GITHUB_OUTPUT"
+            echo 'PHP_INI=error_reporting=-1, display_errors=On, display_startup_errors=On, date.timezone=Australia/Sydney, short_open_tag=On' >> "$GITHUB_OUTPUT"
           else
-            echo 'PHP_INI=error_reporting=-1, display_errors=On' >> "$GITHUB_OUTPUT"
+            echo 'PHP_INI=error_reporting=-1, display_errors=On, display_startup_errors=On' >> "$GITHUB_OUTPUT"
           fi
+          # yamllint enable rule:line-length
 
       - name: Install PHP
         uses: shivammathur/setup-php@v2
@@ -207,7 +209,7 @@ jobs:
       # This action also handles the caching of the dependencies.
       - name: Set up node
         if: ${{ matrix.custom_ini == false }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
 
@@ -255,7 +257,7 @@ jobs:
 
       - name: Download the PHPCS phar
         if: ${{ matrix.custom_ini == false }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: phpcs-phar
 
@@ -300,7 +302,7 @@ jobs:
         run: git config --global core.autocrlf input
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup ini config
         if: ${{ matrix.custom_ini == true && matrix.os != 'windows-latest' }}
@@ -314,13 +316,13 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          ini-values: error_reporting=-1, display_errors=On${{ steps.set_ini.outputs.PHP_INI }}
+          ini-values: error_reporting=-1, display_errors=On, display_startup_errors=On${{ steps.set_ini.outputs.PHP_INI }}
           coverage: xdebug
 
       # This action also handles the caching of the dependencies.
       - name: Set up node
         if: ${{ matrix.custom_ini == false }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
 

@@ -49,13 +49,13 @@ jobs:
         run: git config --global core.autocrlf input
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          ini-values: 'error_reporting=-1, display_errors=On'
+          ini-values: 'error_reporting=-1, display_errors=On, display_startup_errors=On'
           coverage: none
 
       # Install dependencies and handle caching in one go.
