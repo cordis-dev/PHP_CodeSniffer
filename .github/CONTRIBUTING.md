@@ -79,7 +79,7 @@ To find bugs which need triage, look for issues and PRs with the
     and suggest closing the issue.
 
 Additionally, for older issues:
-* Check whether an issue still exists or has been fixed in `master` since the issue was initially reported.
+* Check whether an issue still exists or has been fixed since the issue was initially reported.
 * If it has been fixed, document (in a comment) which commit/PR was responsible for fixing the issue
     and suggest closing the ticket.
 
@@ -174,7 +174,7 @@ will be pinged (cc-ed) to gather their thoughts on the topic.
 
 > [!TIP]
 > This cc-list list is public and
-> [maintained in a markdown file](https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/.github/community-cc-list.md).
+> [maintained in a markdown file](https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/HEAD/.github/community-cc-list.md).
 >
 > To add or remove yourself to/from this list, submit a PR to the repo updating the `community-cc-list.md` file.
 > PRs adding/removing _other people_ to/from the list will only be merged if the people being added/removed leave a comment
@@ -245,7 +245,7 @@ When in doubt how to proceed with a ticket, feel free to leave a comment with sp
 
 1. Fork/clone the repository.
 2. Run `composer install`.
-3. Create a new branch off the `master` branch to hold your patch.
+3. Create a new branch off the `4.x` branch to hold your patch.
     If there is an open issue associated with your patch, including the issue number in the branch name is good practice.
 
 
@@ -391,7 +391,7 @@ To run the tests specific to the use of `PHP_CODESNIFFER_CBF === true`:
 
 ### Writing End-to-End Tests
 
-Bash-based end-to-end tests can be written using the [Bashunit](https://bashunit.typeddevs.com/) test tooling.
+Bash-based end-to-end tests can be written using the [Bashunit](https://bashunit.typeddevs.com/) test tooling using version 0.26.0 or higher.
 
 To install bashunit, follow the [installation guide](https://bashunit.typeddevs.com/installation).
 
@@ -471,6 +471,6 @@ Submitting a (largely) AI-generated PR will lead to you being banned from the re
 ## Licensing
 
 By contributing code to this repository, you agree to license your code for use under the
-[BSD-3-Clause license](https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt).
+[BSD-3-Clause license](https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/HEAD/licence.txt).
 
 [issuelist]: https://github.com/PHPCSStandards/PHP_CodeSniffer/issues
