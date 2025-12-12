@@ -218,7 +218,7 @@ class Ruleset
                     $namespace = basename(dirname($standard));
                 }
 
-                Autoload::addSearchPath(dirname($standard), $namespace);
+                //Autoload::addSearchPath(dirname($standard), $namespace);
             }
 
             if (PHP_CODESNIFFER_VERBOSITY === 1) {
@@ -558,10 +558,10 @@ class Ruleset
         $sniffDir = $rulesetDir . DIRECTORY_SEPARATOR . 'Sniffs';
         if (is_dir($sniffDir) === true) {
             if (PHP_CODESNIFFER_VERBOSITY > 1) {
-                StatusWriter::write('Adding sniff files from ' . Common::stripBasepath($sniffDir, $this->config->basepath) . ' directory', ($depth + 1));
+                //StatusWriter::write('Adding sniff files from ' . Common::stripBasepath($sniffDir, $this->config->basepath) . ' directory', ($depth + 1));
             }
 
-            $ownSniffs = $this->expandSniffDirectory($sniffDir, $depth);
+            //$ownSniffs = $this->expandSniffDirectory($sniffDir, $depth);
         }
 
         // Include custom autoloaders.
