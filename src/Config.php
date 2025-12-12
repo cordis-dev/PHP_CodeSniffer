@@ -571,7 +571,7 @@ class Config
         $this->bootstrap       = [];
         $this->basepath        = null;
         $this->reports         = ['full' => null];
-        $this->reportWidth     = 'auto';
+        $this->reportWidth     = '200';
         $this->errorSeverity   = 5;
         $this->warningSeverity = 5;
         $this->recordErrors    = true;
